@@ -5,9 +5,13 @@ import at.petrak.hexcasting.api.casting.arithmetic.predicates.IotaMultiPredicate
 import at.petrak.hexcasting.api.casting.arithmetic.predicates.IotaMultiPredicate.pair
 import at.petrak.hexcasting.api.casting.arithmetic.predicates.IotaPredicate.ofType
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
+import at.petrak.hexcasting.api.casting.eval.OperationResult
+import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
+import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
+import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes.DOUBLE
 import org.jblas.DoubleMatrix
 import org.jblas.MatrixFunctions
@@ -15,6 +19,7 @@ import org.jblas.Singular
 import org.jblas.Solve
 import ram.talia.moreiotas.api.asActionResult
 import ram.talia.moreiotas.api.asMatrix
+import ram.talia.moreiotas.api.casting.iota.MatrixIota
 import ram.talia.moreiotas.api.matrixWrongSize
 import ram.talia.moreiotas.api.times
 import ram.talia.moreiotas.common.casting.arithmetic.operator.nextNumOrVecOrMatrix
@@ -22,25 +27,41 @@ import ram.talia.moreiotas.common.lib.hex.MoreIotasIotaTypes.MATRIX
 import kotlin.math.*
 
 object OperatorMatrixPow : Operator(2, either(pair(ofType(MATRIX), ofType(DOUBLE)), pair(ofType(DOUBLE), ofType(MATRIX)))) {
-    override fun apply(iotas: Iterable<Iota>, env: CastingEnvironment): Iterable<Iota> {
-        val it = iotas.iterator().withIndex()
+
+    override fun operate(
+        env: CastingEnvironment,
+        image: CastingImage,
+        continuation: SpellContinuation
+    ): OperationResult {
+        val it = image.stack.reversed().iterator().withIndex()
+        var ares: List<MatrixIota>? = null
         val arg0 = it.nextNumOrVecOrMatrix(arity)
         val arg1 = it.nextNumOrVecOrMatrix(arity)
 
         arg0.a?.let {
             val mat = arg1.asMatrix
             if (mat.rows != mat.columns)
-                throw MishapInvalidIota.matrixWrongSize(iotas.last(), 0, mat.rows, mat.rows)
+                throw MishapInvalidIota.matrixWrongSize(image.stack.last(), 0, mat.rows, mat.rows)
 
-            return MatrixFunctions.expm(ln(it) * mat).asActionResult
+            ares = MatrixFunctions.expm(ln(it) * mat).asActionResult
         }
+        if (ares == null) {
+            val mat = arg0.asMatrix
+            if (mat.rows != mat.columns)
+                throw MishapInvalidIota.matrixWrongSize(image.stack.last(), 0, mat.rows, mat.rows)
+            val power = arg1.a ?: throw MishapInvalidIota.of(image.stack.last(), 0, "double")
 
-        val mat = arg0.asMatrix
-        if (mat.rows != mat.columns)
-            throw MishapInvalidIota.matrixWrongSize(iotas.last(), 0, mat.rows, mat.rows)
-        val power = arg1.a ?: throw MishapInvalidIota.of(iotas.last(), 0, "double")
-
-        return fractionalPowerMatrix(mat, power).asActionResult
+            ares = fractionalPowerMatrix(mat, power).asActionResult
+        }
+        val output = mutableListOf<Iota>()
+        it.asSequence().toMutableList().reversed().forEach {output.add(it.value)}
+        ares!!.forEach { output.add(it) }
+        return OperationResult(
+            image.copy(output),
+            listOf(),
+            continuation,
+            HexEvalSounds.NORMAL_EXECUTE
+        )
     }
 
     /**

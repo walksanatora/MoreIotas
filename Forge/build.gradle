@@ -8,7 +8,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6.0.+', changing: true
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
@@ -29,6 +29,13 @@ archivesBaseName = getArtifactID("forge")
 configurations {
     shade
     implementation.extendsFrom shade
+}
+
+
+tasks {
+    reobfJar {
+        dependsOn(shadowJar)
+    }
 }
 
 minecraft {
@@ -162,6 +169,9 @@ repositories {
         url = "https://modmaven.dev"
     }
 
+    maven { url 'https://maven.blamejared.com' }
+
+
     maven {
         name = 'Kotlin for Forge'
         url = 'https://thedarkcolour.github.io/KotlinForForge/'
@@ -186,22 +196,22 @@ dependencies {
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
-    implementation fg.deobf("$modID:paucal-forge-$minecraftVersion:$paucalVersion")
-    implementation fg.deobf("$modID:hexcasting-forge-$minecraftVersion:$hexcastingVersion")
+    implementation ("at.petra-k.paucal:paucal-forge-$minecraftVersion:$paucalVersion")
+    implementation ("at.petra-k.hexcasting:hexcasting-forge-$minecraftVersion:$hexcastingVersion")
 
-    implementation fg.deobf("vazkii.patchouli:Patchouli:$minecraftVersion-$patchouliVersion-FORGE-SNAPSHOT")
+    implementation ("vazkii.patchouli:Patchouli:$minecraftVersion-$patchouliVersion-FORGE-SNAPSHOT")
 
     // Testing dependencies:
     testCompileOnly project(":Common")
 
     testAnnotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
-    testCompileOnly fg.deobf("$modID:paucal-forge-$minecraftVersion:$paucalVersion")
-    testRuntimeOnly fg.deobf("$modID:paucal-forge-$minecraftVersion:$paucalVersion")
-    testCompileOnly fg.deobf("$modID:hexcasting-forge-$minecraftVersion:$hexcastingVersion")
-    testRuntimeOnly fg.deobf("$modID:hexcasting-forge-$minecraftVersion:$hexcastingVersion")
-    testCompileOnly fg.deobf("vazkii.patchouli:Patchouli:$minecraftVersion-$patchouliVersion-FORGE-SNAPSHOT")
-    testRuntimeOnly fg.deobf("vazkii.patchouli:Patchouli:$minecraftVersion-$patchouliVersion-FORGE-SNAPSHOT")
+    testRuntimeOnly ("at.petra-k.paucal:paucal-forge-$minecraftVersion:$paucalVersion")
+    testCompileOnly ("at.petra-k.paucal:paucal-forge-$minecraftVersion:$paucalVersion")
+    testCompileOnly ("at.petra-k.hexcasting:hexcasting-forge-$minecraftVersion:$hexcastingVersion")
+    testRuntimeOnly ("at.petra-k.hexcasting:hexcasting-forge-$minecraftVersion:$hexcastingVersion")
+    compileOnly ("vazkii.patchouli:Patchouli:$minecraftVersion-$patchouliVersion-FORGE-SNAPSHOT:api")
+    runtimeOnly ("vazkii.patchouli:Patchouli:$minecraftVersion-$patchouliVersion-FORGE-SNAPSHOT")
 
     testCompileOnly 'org.junit.jupiter:junit-jupiter-api:5.9.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'

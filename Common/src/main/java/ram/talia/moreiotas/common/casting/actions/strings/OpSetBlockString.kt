@@ -32,7 +32,7 @@ object OpSetBlockString : SpellAction {
 
         return SpellAction.Result(
                 Spell(pos, string),
-                MoreIotasConfig.server.setBlockStringCost,
+                MoreIotasConfig.server.setBlockStringCost.toLong(),
                 listOf(ParticleSpray.burst(Vec3.atCenterOf(pos), 1.0))
         )
     }

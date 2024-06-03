@@ -6,6 +6,7 @@ import at.petrak.hexcasting.api.casting.castables.SpellAction
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
 import at.petrak.hexcasting.api.casting.getEntity
 import at.petrak.hexcasting.api.casting.iota.Iota
+import at.petrak.hexcasting.common.items.storage.ItemSpellbook
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Mob
@@ -24,7 +25,7 @@ object OpNameSet : SpellAction {
 
         return SpellAction.Result(
             Spell(newName, entityToRename),
-            MoreIotasConfig.server.setBlockStringCost,
+            MoreIotasConfig.server.setBlockStringCost.toLong(),
             listOf(ParticleSpray.burst(entityToRename.position(), 0.5))
         )
     }
@@ -35,8 +36,14 @@ object OpNameSet : SpellAction {
             entity.customName = nameComp
             if (entity is Mob)
                 entity.setPersistenceRequired()
-            else if (entity is ItemEntity)
-                entity.item.setHoverName(nameComp)
+            else if (entity is ItemEntity) {
+                val item = entity.item
+                item.setHoverName(nameComp)
+                if (item.item is ItemSpellbook) {
+                    item.inventoryTick(entity.level(),entity,0,true)
+                }
+            }
+
         }
     }
 }

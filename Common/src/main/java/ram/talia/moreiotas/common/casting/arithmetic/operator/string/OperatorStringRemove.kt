@@ -3,10 +3,15 @@ package ram.talia.moreiotas.common.casting.arithmetic.operator.string
 import at.petrak.hexcasting.api.casting.arithmetic.operator.Operator
 import at.petrak.hexcasting.api.casting.arithmetic.predicates.IotaMultiPredicate
 import at.petrak.hexcasting.api.casting.arithmetic.predicates.IotaPredicate
+import at.petrak.hexcasting.api.casting.asActionResult
 import at.petrak.hexcasting.api.casting.eval.CastingEnvironment
+import at.petrak.hexcasting.api.casting.eval.OperationResult
+import at.petrak.hexcasting.api.casting.eval.vm.CastingImage
+import at.petrak.hexcasting.api.casting.eval.vm.SpellContinuation
 import at.petrak.hexcasting.api.casting.iota.DoubleIota
 import at.petrak.hexcasting.api.casting.iota.Iota
 import at.petrak.hexcasting.api.casting.mishaps.MishapInvalidIota
+import at.petrak.hexcasting.common.lib.hex.HexEvalSounds
 import at.petrak.hexcasting.common.lib.hex.HexIotaTypes.DOUBLE
 import ram.talia.moreiotas.api.asActionResult
 import ram.talia.moreiotas.api.casting.iota.StringIota
@@ -16,7 +21,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 object OperatorStringRemove : Operator(2, IotaMultiPredicate.pair(IotaPredicate.ofType(STRING), IotaPredicate.or(IotaPredicate.ofType(STRING), IotaPredicate.ofType(DOUBLE)))) {
-    override fun apply(iotas: Iterable<Iota>, env: CastingEnvironment): Iterable<Iota> {
+     fun apply(iotas: Iterable<Iota>, env: CastingEnvironment): Iterable<Iota> {
         val it = iotas.iterator().withIndex()
         val removeFrom = it.nextString(arity)
 
@@ -33,5 +38,39 @@ object OperatorStringRemove : Operator(2, IotaMultiPredicate.pair(IotaPredicate.
 
             removeFrom.substring(0, rounded) + removeFrom.substring(rounded + 1)
         }.asActionResult
+    }
+
+    override fun operate(
+        env: CastingEnvironment,
+        image: CastingImage,
+        continuation: SpellContinuation
+    ): OperationResult {
+        val it: Iterator<Iota> = image.stack.reversed().iterator()
+
+        val removeFrom = downcast(it.next(), STRING).string
+        val x = it.next()
+
+        val ares = if (x is StringIota) {
+            val toRemove = x.string
+            removeFrom.replaceFirst(toRemove, "")
+        } else {
+            val double = (x as DoubleIota).double
+            val rounded = double.roundToInt()
+            if (abs(double - rounded) > DoubleIota.TOLERANCE || rounded !in 0..removeFrom.length) {
+                throw MishapInvalidIota.of(x, 0, "int.positive.less.equal", removeFrom.length)
+            }
+
+            removeFrom.substring(0, rounded) + removeFrom.substring(rounded + 1)
+        }.asActionResult
+
+        val output = mutableListOf<Iota>()
+        it.asSequence().toMutableList().reversed().forEach {output.add(it)}
+        ares.forEach { output.add(it) }
+        return OperationResult(
+            image.copy(output),
+            listOf(),
+            continuation,
+            HexEvalSounds.NORMAL_EXECUTE
+        )
     }
 }
